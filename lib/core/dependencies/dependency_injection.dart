@@ -4,6 +4,7 @@ import 'package:test_zadanie/data/data_source/character_data_source.dart';
 import 'package:test_zadanie/data/repository/character_repository.dart';
 import 'package:test_zadanie/domain/repository/character_repository.dart';
 import 'package:test_zadanie/domain/usecases/get_characters_use_case.dart';
+import 'package:test_zadanie/presentation/favorites/cubit/favorites_cubit.dart';
 
 import '../../presentation/characters/bloc/characters_bloc.dart';
 
@@ -21,4 +22,5 @@ void setup() {
   getIt.registerFactory(() => CharacterBloc(
     getCharactersUseCase: getIt(),
   ));
+  getIt.registerFactory(() => FavoritesCubit());
 }
