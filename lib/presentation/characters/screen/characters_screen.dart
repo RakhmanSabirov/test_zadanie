@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:test_zadanie/presentation/characters/bloc/characters_bloc.dart';
+import 'package:test_zadanie/data/models/character_model.dart';
 
 class CharactersScreen extends StatefulWidget {
   const CharactersScreen({super.key});
@@ -10,124 +11,80 @@ class CharactersScreen extends StatefulWidget {
 }
 
 class _CharactersScreenState extends State<CharactersScreen> {
-  late final ScrollController _controller;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    _controller = ScrollController()..addListener(_onScroll);
-    context
-        .read<CharactersBloc>()
-        .add(FetchCharactersEvent());
+    context.read<CharacterBloc>().add(LoadCharacters());
+
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+        context.read<CharacterBloc>().add(LoadCharacters(loadMore: true));
+      }
+    });
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  void _onScroll() {
-    if (_controller.position.extentAfter < 300) {
-      context.read<CharactersBloc>().add(
-          LoadNextPageEvent());
-    }
+  Widget _buildCharacterCard(CharacterModel character) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: ListTile(
+        leading: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Image.network(
+            character.image,
+            width: 50,
+            height: 50,
+            fit: BoxFit.cover,
+          ),
+        ),
+        title: Text(character.name),
+        subtitle: Text('${character.status} - ${character.species}'),
+        trailing: const Icon(Icons.star_border),
+      ),
+    );
+  }
+
+  Widget _buildCharacterList(List<CharacterModel> characters, {required bool hasMore}) {
+    return ListView.builder(
+      controller: _scrollController,
+      itemCount: characters.length + (hasMore ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index < characters.length) {
+          return _buildCharacterCard(characters[index]);
+        } else {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Персонажи")),
-      body: Column(
-        children: [
-          Expanded(
-            child: BlocBuilder<CharactersBloc, CharactersState>(
-              builder: (context, state) {
-                return switch (state) {
-                  CharactersLoading() =>
-                  const Center(child: CircularProgressIndicator()),
-                  CharactersLoaded() ||
-                  CharactersLoadingMore() =>
-                      Builder(builder: (context) {
-                        final characters = (state is CharactersLoaded)
-                            ? state.characters
-                            : (state as CharactersLoadingMore).characters;
-                        final isLoadingMore = state is CharactersLoadingMore;
-                        return ListView.builder(
-                          controller: _controller,
-                          itemCount: characters.length + (isLoadingMore ? 1 : 0),
-                          itemBuilder: (context, index) {
-                            if (index == characters.length && isLoadingMore) {
-                              // Здесь именно posts.length, а не -1
-                              return const Padding(
-                                padding: EdgeInsets.all(8.0),
-                                child: Center(child: CircularProgressIndicator()),
-                              );
-                            }
-
-                            final character = characters[index];
-                            return Card(
-                              child: ListTile(
-                                title: Text(character.name),
-                                subtitle: Text(
-                                  character.gender,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            );
-                          },
-                        );
-                      }),
-                  CharactersError() =>
-                      Center(child: Text("Ошибка: ${state.message}")),
-                };
-                // if (state is PostsLoading) {
-                //   return Center(child: CircularProgressIndicator());
-                // } else if (state is PostsLoaded || state is PostsLoadingMore) {
-                //   final posts = (state is PostsLoaded) ? state.posts : (state as PostsLoadingMore).posts;
-                //   final isLoadingMore = state is PostsLoadingMore;
-                //
-                //   return ListView.builder(
-                //     controller: _controller,
-                //     itemCount: posts.length + (isLoadingMore ? 1 : 0),
-                //     itemBuilder: (context, index) {
-                //       if (index == posts.length && isLoadingMore) { // Здесь именно posts.length, а не -1
-                //         return Padding(
-                //           padding: const EdgeInsets.all(8.0),
-                //           child: Center(child: CircularProgressIndicator()),
-                //         );
-                //       }
-                //
-                //       final post = posts[index];
-                //       return Card(
-                //         child: ListTile(
-                //           title: Text(post.title),
-                //           subtitle: Text(
-                //             post.content,
-                //             maxLines: 2,
-                //             overflow: TextOverflow.ellipsis,
-                //           ),
-                //           onTap: () {
-                //             Navigator.push(
-                //               context,
-                //               MaterialPageRoute(
-                //                 builder: (_) => PostDetailPage(postId: post.id),
-                //               ),
-                //             );
-                //           },
-                //         ),
-                //       );
-                //     },
-                //   );
-                // } else if (state is PostsError) {
-                //   return Center(child: Text("Ошибка: ${state.message}"));
-                // }
-                // return Container();
-              },
-            ),
-          ),
-        ],
+      appBar: AppBar(title: const Text('Персонажи')),
+      body: BlocBuilder<CharacterBloc, CharacterState>(
+        builder: (context, state) {
+          switch (state) {
+            case CharactersLoading():
+              return _buildCharacterList(state.characters, hasMore: true);
+            case CharactersSuccess():
+              return _buildCharacterList(state.characters, hasMore: state.hasMore);
+            case CharactersError():
+              return Center(child: Text('Ошибка: ${state.message}'));
+            case CharactersInitial():
+              return const Center(child: CircularProgressIndicator());
+          }
+        },
       ),
     );
   }

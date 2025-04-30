@@ -1,7 +1,9 @@
 part of 'characters_bloc.dart';
 
-abstract class CharactersEvent {}
+abstract class CharacterEvent {}
 
-class FetchCharactersEvent extends CharactersEvent {}
+class LoadCharacters extends CharacterEvent {
+  final bool loadMore;
 
-class LoadNextPageEvent extends CharactersEvent {}
+  LoadCharacters({this.loadMore = false});
+}

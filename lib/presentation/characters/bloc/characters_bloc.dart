@@ -1,6 +1,4 @@
-
 import 'package:bloc/bloc.dart';
-import 'package:dio/dio.dart';
 import 'package:test_zadanie/domain/usecases/get_characters_use_case.dart';
 
 import '../../../data/models/character_model.dart';
@@ -8,78 +6,39 @@ import '../../../data/models/character_model.dart';
 part 'characters_event.dart';
 part 'characters_state.dart';
 
-class CharactersBloc extends Bloc<CharactersEvent, CharactersState> {
+class CharacterBloc extends Bloc<CharacterEvent, CharacterState> {
   final GetCharactersUseCase getCharactersUseCase;
-  bool _isFetching = false;
-  List<CharacterModel> _allCharacters = [];
-  List<CharacterModel> _displayedCharacters = [];
-  int _currentPage = 0;
-  final int _postsPerPage = 15;
 
-  CharactersBloc({
-    required this.getCharactersUseCase,
-  }) : super(CharactersLoading()) {
-    on<FetchCharactersEvent>(_onFetchCharacters);
-    on<LoadNextPageEvent>(_onLoadNextPage);
+  int _currentPage = 1;
+  bool _hasMore = true;
+  final List<CharacterModel> _allCharacters = [];
+
+  CharacterBloc({required this.getCharactersUseCase}) : super(CharactersInitial()) {
+    on<LoadCharacters>(_onLoadCharacters);
   }
 
-  Future<void> _onFetchCharacters(
-      FetchCharactersEvent event, Emitter<CharactersState> emit) async {
-    if (_isFetching) return;
-    _isFetching = true;
+  Future<void> _onLoadCharacters(
+      LoadCharacters event,
+      Emitter<CharacterState> emit,
+      ) async {
+    if (!_hasMore && event.loadMore) return;
+
+    if (!event.loadMore) {
+      emit(CharactersLoading(characters: _allCharacters)); // Передаем уже загруженные персонажи
+      _currentPage = 1;
+      _allCharacters.clear();
+    }
 
     try {
-      final newCharacters = await getCharactersUseCase.execute();
-      print('Fetched ${newCharacters.length} characters from server');
+      final newCharacters = await getCharactersUseCase.execute(page: _currentPage);
 
-      if (newCharacters.isEmpty) {
-        emit(CharactersError('Нет постов для отображения'));
-        return;
-      }
-
-      _allCharacters = newCharacters;
-      _displayedCharacters = _allCharacters.take(_postsPerPage).toList();
-
-      emit(CharactersLoaded(_displayedCharacters,
-          _allCharacters.length > _postsPerPage));
+      _allCharacters.addAll(newCharacters);
+      _hasMore = newCharacters.length == 20; // Обычно 20 элементов на страницу
       _currentPage++;
+
+      emit(CharactersSuccess(characters: _allCharacters, hasMore: _hasMore));
     } catch (e) {
-      if (e is DioException) {
-        emit(CharactersError('Ошибка загрузки постов: ${e.message}'));
-      } else {
-        emit(CharactersError('Неизвестная ошибка при загрузке постов'));
-      }
+      emit(CharactersError(e.toString()));
     }
-
-    _isFetching = false;
-  }
-
-  Future<void> _onLoadNextPage(
-      LoadNextPageEvent event, Emitter<CharactersState> emit) async {
-    if (_isFetching) return;
-    if (_currentPage * _postsPerPage >= _allCharacters.length) {
-      emit(CharactersLoaded(_displayedCharacters, false));
-      return;
-    }
-
-    _isFetching = true;
-
-    emit(CharactersLoadingMore(_displayedCharacters));
-
-    await Future.delayed(const Duration(seconds: 1));
-
-    final nextCharacters = _allCharacters
-        .skip(_currentPage * _postsPerPage)
-        .take(_postsPerPage)
-        .toList();
-    _displayedCharacters.addAll(nextCharacters);
-
-    final hasNextPage =
-        (_currentPage * _postsPerPage + _postsPerPage) < _allCharacters.length;
-
-    emit(CharactersLoaded(_displayedCharacters, hasNextPage));
-    _currentPage++;
-
-    _isFetching = false;
   }
 }

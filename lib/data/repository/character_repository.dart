@@ -10,5 +10,7 @@ class CharacterRepositoryImpl implements CharacterRepository {
   CharacterRepositoryImpl(this.dataSource);
 
   @override
-  Future<List<CharacterModel>> getCharacters() => dataSource.getCharacters();
+  Future<List<CharacterModel>> getCharacters({required int page}) {
+    return dataSource.getCharacters(page: page);
+  }
 }

@@ -1,22 +1,24 @@
 part of 'characters_bloc.dart';
 
-sealed class CharactersState {}
+sealed class CharacterState {}
 
-class CharactersLoading extends CharactersState {}
+class CharactersInitial extends CharacterState {}
 
-class CharactersLoaded extends CharactersState {
+class CharactersLoading extends CharacterState {
   final List<CharacterModel> characters;
-  final bool hasNextPage;
 
-  CharactersLoaded(this.characters, this.hasNextPage);
+  CharactersLoading({required this.characters});
 }
 
-class CharactersLoadingMore extends CharactersState {
+class CharactersSuccess extends CharacterState {
   final List<CharacterModel> characters;
-  CharactersLoadingMore(this.characters);
+  final bool hasMore;
+
+  CharactersSuccess({required this.characters, required this.hasMore});
 }
 
-class CharactersError extends CharactersState {
+class CharactersError extends CharacterState {
   final String message;
+
   CharactersError(this.message);
 }

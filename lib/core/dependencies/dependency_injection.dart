@@ -18,7 +18,7 @@ void setup() {
 
   getIt.registerLazySingleton(() => GetCharactersUseCase(getIt()));
 
-  getIt.registerFactory(() => CharactersBloc(
+  getIt.registerFactory(() => CharacterBloc(
     getCharactersUseCase: getIt(),
   ));
 }

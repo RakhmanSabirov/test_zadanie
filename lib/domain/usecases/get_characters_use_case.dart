@@ -7,7 +7,7 @@ class GetCharactersUseCase {
 
   GetCharactersUseCase(this.repository);
 
-  Future<List<CharacterModel>> execute() {
-    return repository.getCharacters();
+  Future<List<CharacterModel>> execute({int page = 1}) {
+    return repository.getCharacters(page: page);
   }
 }

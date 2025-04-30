@@ -11,7 +11,7 @@ class CharactersPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => CharactersBloc(
+      create: (context) => CharacterBloc(
         getCharactersUseCase:
         getIt<GetCharactersUseCase>(), // Получаем зависимость через getIt
       ),
